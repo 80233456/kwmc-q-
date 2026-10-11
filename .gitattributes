@@ -1,0 +1,10 @@
+# 行尾与编码约定：.bat 必须 CRLF（cmd.exe 只按 CRLF 断行）
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.py  text eol=lf
+*.md  text eol=lf
+*.txt text eol=lf
+
+# 二进制
+*.ico binary
+*.png binary

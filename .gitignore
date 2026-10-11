@@ -1,0 +1,47 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- 打包产物（自行用 打包-*.bat 生成，不入库）----
+build/
+dist/
+*.spec
+
+# ---- 运行时数据（下载的音乐、缓存、设置）----
+work/
+work/pc_downloads/
+work/lyrics/
+work/covers/
+work/studio_settings.json
+work/ui_shots/
+pc_downloads/
+*.lrc.tmp
+*.part
+
+# ---- 媒体与样本（版权内容 + 体积大，绝不入库）----
+*.flac
+*.mp3
+*.m4a
+*.aac
+*.wav
+*.ogg
+*.apk
+*.apks
+*.dex
+*.so
+
+# ---- 逆向过程产物 ----
+*.dump
+all.list
+classes*.txt
+base.apk
+
+# ---- 编辑器/系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
