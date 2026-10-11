@@ -7,6 +7,19 @@
 
 ---
 
+## 📦 直接下载（免安装）
+
+到 [**Releases**](https://github.com/80233456/kwmc-q-/releases/latest) 下载：
+
+| 文件 | 说明 |
+| --- | --- |
+| `MusicBox-Studio-v1.0.0-portable.exe`（55 MB） | ★ **单文件版**：拷到任何 Win10/11 电脑双击即用，**不需要装 Python**（首次启动约 3 秒） |
+| `MusicBox-Studio-v1.0.0-folder.zip`（56 MB） | **单目录版**：解压后运行里面的 `音乐盒Studio.exe`，启动更快；⚠️ 切勿只把 exe 单独拖出来 |
+
+> Windows 10/11 64 位可直接运行；Win7 不支持（Python 3.11 限制）。
+
+---
+
 ## ✨ 功能
 
 | 模块 | 说明 |
