@@ -100,6 +100,29 @@ docs/                  使用说明与技术报告
 
 ---
 
+## 🎧 kwlx music（lx-music 定制版）
+
+把本项目的酷我接口作为**自定义音源**接进 [lx-music-desktop](https://github.com/lyswhut/lx-music-desktop)，
+并预装、默认启用，**支持无损 FLAC 下载**。详见 **[lx-music/README.md](lx-music/README.md)**。
+
+| 文件 | 说明 |
+| --- | --- |
+| [`lx-music/kwlx-kuwo-source.js`](lx-music/kwlx-kuwo-source.js) | 纯 JS 自定义音源（q 加密 + 无损 + 歌词），可直接导入官方 lx-music |
+| [`lx-music/tools/`](lx-music/tools) | 生成器、与 Python 对拍的测试、lx-music 补丁脚本、`node:sqlite` 垫片 |
+
+要点：
+
+* **q 参数加密用纯 JS 重写**（BigInt 实现 64 位运算，无 Buffer/require），已与 Python 实现**逐字节对拍一致**（7 组向量）；
+* 音质档位 `128k / 320k / flac / flac24bit`（24bit 自动回退 flac），主档失败自动降级；
+* 实测：flac 26.6 MB、文件头 `fLaC` ✅；歌词 72 行 ✅；异常入参正确报错 ✅（13/13）；
+* kwlx 定制版额外做了：预装音源、默认选中、放开 `kw` 源的 `lyric` 动作、品牌名/标题/appId、
+  以及把 `better-sqlite3` 换成 **`node:sqlite` 垫片**（无需 Visual Studio 即可构建）。
+
+> kwlx music 是 lx-music-desktop（© lyswhut，**Apache-2.0**）的修改版，遵守 Apache-2.0 分发，
+> 改动清单见 [lx-music/README.md](lx-music/README.md) 第五节。
+
+---
+
 ## 🙏 致谢与引用的开源项目
 
 本项目的**加密算法实现**与部分接口思路来自以下开源项目，特此致谢（按贡献程度排序）：
@@ -112,6 +135,7 @@ docs/                  使用说明与技术报告
 | **[listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)** | 多音源聚合与接口适配的总体思路 |
 | **[UnblockNeteaseMusic/server](https://github.com/UnblockNeteaseMusic/server)** | 音源降级/替换（fallback）思路，歌词兜底方案参考 |
 | **[sdbabd/QQKWKG-TriMusicDecrypt](https://github.com/sdbabd/QQKWKG-TriMusicDecrypt)** | 音乐平台加解密与接口逆向的参考资料 |
+| **[lyswhut/lx-music-desktop](https://github.com/lyswhut/lx-music-desktop)** | ⭐ **kwlx music** 的宿主应用（Apache-2.0）：我们以其「自定义源」机制接入酷我音源，并发布带改动的定制版（改动清单见 [lx-music/README.md](lx-music/README.md)） |
 
 使用的开源软件与库：
 
