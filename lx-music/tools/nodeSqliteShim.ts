@@ -22,22 +22,65 @@ export class Statement {
   }
 
   run(...args: BindArgs) {
-    const r = this.stmt.run(...this.normalize(args))
+    const r = this.call('run', args)
     return { changes: r?.changes ?? 0, lastInsertRowid: r?.lastInsertRowid ?? 0 }
   }
 
   get(...args: BindArgs) {
-    return this.stmt.get(...this.normalize(args))
+    return this.call('get', args)
   }
 
   all(...args: BindArgs) {
-    return this.stmt.all(...this.normalize(args))
+    return this.call('all', args)
   }
 
-  /** better-sqlite3 允许把参数放在数组里 */
+  /**
+   * better-sqlite3 与 node:sqlite 的关键差异：
+   *   - 多余的命名参数：better-sqlite3 **忽略**，node:sqlite **抛错** Unknown named parameter
+   *   - 缺失的命名参数：better-sqlite3 绑成 NULL，node:sqlite **抛错** Missing named parameter
+   * 这里双向容错：按报错逐个剔除多余参数 / 补齐缺失参数，直到成功。
+   */
+  private call(method: string, args: BindArgs) {
+    let cur = this.normalize(args)
+    for (let i = 0; i < 30; i++) {
+      try {
+        return this.stmt[method](...cur)
+      } catch (err: any) {
+        const msg = String(err?.message || err)
+        let m = /Unknown named parameter '?([^'\s]+)'?/i.exec(msg)
+        if (m) {
+          const key = m[1]
+          const obj = cur[0]
+          if (typeof obj !== 'object' || obj === null || !(key in obj)) throw err
+          const next: any = {}
+          for (const [k, v] of Object.entries(obj)) if (k !== key) next[k] = v
+          cur = [next]
+          continue
+        }
+        m = /Missing named parameter '?([^'\s]+)'?/i.exec(msg)
+        if (m) {
+          const key = m[1]
+          const obj = cur[0]
+          if (typeof obj !== 'object' || obj === null) throw err
+          cur = [{ ...obj, [key]: null }]
+          continue
+        }
+        throw err
+      }
+    }
+    throw new Error('too many named-parameter fixes')
+  }
+
+  /** 单数组参数摊平；undefined → null（better-sqlite3 的 NULL 语义） */
   private normalize(args: BindArgs): BindArgs {
-    if (args.length === 1 && Array.isArray(args[0])) return args[0]
-    return args
+    let a = args
+    if (a.length === 1 && Array.isArray(a[0])) a = a[0]
+    if (a.length === 1 && a[0] && typeof a[0] === 'object' && !Buffer.isBuffer(a[0])) {
+      const obj: any = {}
+      for (const [k, v] of Object.entries(a[0])) obj[k] = v === undefined ? null : v
+      return [obj]
+    }
+    return a.map((v) => (v === undefined ? null : v))
   }
 }
 

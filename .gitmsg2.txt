@@ -1,0 +1,21 @@
+fix(kwlx): 修复"双击不播放"与"没有下载按钮"（v1.1.2）
+
+五处真实根因（详见 lx-music/KWLX-故障修复记录.md）：
+
+1. 音源 id 不以 user_api 开头 → lx 判定为内置源 → 每次播放抛 "Api is not found"
+   → id 改为 user_api_kwlx，默认 common.apiSource 同步
+2. 音源只注册 kw，而结果多为 kg/tx/wy/mg → 其它源无地址提供者
+   → 接管全部 5 源；非 kw 歌曲用「歌名+歌手」跨源到酷我搜索取 rid（带缓存）
+3. node:sqlite 垫片命名参数语义不同（多余参数抛错/缺失不补）
+   → 双向容错（剔除多余 / 补齐缺失 / undefined→NULL），单测 6/6
+4. 'list.actionButtonsVisible' 默认 false → 每行的「播放/添加到/下载」整列不渲染
+   → 默认 true + 主进程 initSetting 强制写入（旧存档一并纠正）
+5. 旧存档的 userApis 会覆盖预装默认值 → 老用户升级后音源永远不加载
+   → getUserApis() 加"确保内置音源始终存在"（幂等补齐并落盘）
+
+验证（CDP 驱动真实应用）：
+  __kwlxDiag = {status:true, apiId:user_api_kwlx, current:user_api_kwlx,
+                sources:[kw,kg,tx,wy,mg], qualities:{...}}
+  行内按钮：downloadIcons=30, ariaLabels=["播放","添加到...","下载"]
+
+同时补充 tools/ 下的 CDP 诊断脚本（cdp_state / cdp_dl / cdp_sandbox / cdp_e2e）。

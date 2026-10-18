@@ -310,28 +310,73 @@ async function kwGetLyric(songId, name, singer) {
   return null
 }
 
+/* ---------------- 跨源：非 kw 歌曲用「歌名+歌手」在酷我找 rid ---------------- */
+const kwRidCache = new Map()
+
+async function kwSearchRid(name, singer) {
+  const key = ((name || '') + ' ' + (singer || '')).trim()
+  if (!key) return null
+  const ck = key.toLowerCase()
+  if (kwRidCache.has(ck)) return kwRidCache.get(ck)
+  const url = 'http://search.kuwo.cn/r.s?all=' + encodeURIComponent(key) +
+    '&pn=0&rn=5&reqId=kwlx&client=kt&uid=0&ver=kwplayer_ar_9.2.2.1&vipver=1' +
+    '&show_copyright_off=1&newver=1&ft=music&cluster=0&strategy=2012' +
+    '&encoding=utf8&rformat=json&vermerge=1&mobi=1&issubtitle=1'
+  let rid = null
+  try {
+    const body = await kwHttp(url, { headers: { 'User-Agent': KW_UA_WEB } })
+    // lx 的 lx.request 在响应是合法 JSON 时会**预先转成对象**，这里统一转回字符串再正则取
+    const txt = typeof body === 'string' ? body : JSON.stringify(body)
+    // 接口返回的 JSON 里可能有未转义的引号（脏数据），用正则逐条取更稳
+    const items = txt.split('{"AARTIST"')
+    for (let i = 1; i < items.length; i++) {
+      const block = items[i]
+      const mName = /"SONGNAME":"([^"]*)"/.exec(block)
+      const mRid = /"MUSICRID":"MUSIC_(\d+)"/.exec(block)
+      if (!mRid) continue
+      const songName = mName ? mName[1] : ''
+      // 优先取歌名相同（忽略大小写/括号后缀差异）的那条
+      const norm = (s) => String(s).toLowerCase().replace(/[\s\-_·]/g, '').replace(/\(.*?\)|（.*?）/g, '')
+      if (!rid || norm(songName) === norm(name)) rid = mRid[1]
+      if (norm(songName) === norm(name)) break
+    }
+  } catch (e) {
+    rid = null
+  }
+  kwRidCache.set(ck, rid)
+  if (kwRidCache.size > 500) kwRidCache.delete(kwRidCache.keys().next().value)
+  return rid
+}
+
 /* ---------------- lx-music 自定义源注册 ---------------- */
-lx.send(lx.EVENT_NAMES.inited, {
-  sources: {
-    kw: {
-      type: 'music',
-      actions: ['musicUrl', 'lyric'],
-      qualitys: ['128k', '320k', 'flac', 'flac24bit'],
-    },
-  },
-})
+// 接管全部 5 个源：kw 用自带 songId 精确解析；其它源用歌名+歌手跨源到酷我
+const KW_SOURCES = ['kw', 'kg', 'tx', 'wy', 'mg']
+const kwSources = {}
+for (const s of KW_SOURCES) {
+  kwSources[s] = {
+    type: 'music',
+    actions: ['musicUrl', 'lyric'],
+    qualitys: ['128k', '320k', 'flac', 'flac24bit'],
+  }
+}
+
+lx.send(lx.EVENT_NAMES.inited, { sources: kwSources })
 
 lx.on(lx.EVENT_NAMES.request, async({ source, action, info }) => {
-  if (source !== 'kw') throw new Error('不支持的音源: ' + source)
-  const meta = (info && info.musicInfo && info.musicInfo.meta) || {}
-  const songId = meta.songId != null ? String(meta.songId) : ''
-  if (!songId) throw new Error('缺少歌曲 ID')
+  const musicInfo = (info && info.musicInfo) || {}
+  const meta = musicInfo.meta || {}
+  let songId = ''
+  if (source === 'kw' && meta.songId != null) {
+    songId = String(meta.songId)
+  } else {
+    songId = (await kwSearchRid(musicInfo.name, musicInfo.singer)) || ''
+  }
+  if (!songId) throw new Error('酷我未找到该歌曲（' + (musicInfo.name || '?') + '）')
   switch (action) {
     case 'musicUrl':
       return kwGetMusicUrl(songId, info.type)
     case 'lyric':
-      return (await kwGetLyric(songId, info.musicInfo && info.musicInfo.name,
-        info.musicInfo && info.musicInfo.singer)) || { lyric: '' }
+      return (await kwGetLyric(songId, musicInfo.name, musicInfo.singer)) || { lyric: '' }
     default:
       throw new Error('不支持的操作: ' + action)
   }
