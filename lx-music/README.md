@@ -71,7 +71,25 @@ flac24bit  → 回退成功                      ✅
 
 ---
 
-## 三、只想要音源脚本（不改装 lx-music）
+## 三、本地音乐库（跟随下载目录）
+
+定制版新增：**下载下来的歌会自动进库**，不用手动导入。
+
+| 项目 | 行为 |
+| --- | --- |
+| 扫描时机 | **启动时**扫一次 + 之后**每 5 分钟**扫一次 |
+| 扫描范围 | 设置 → 下载 → 保存路径（默认 `C:\Users\<你>\Music\kwlx`），**递归子目录**，最多 6 层 |
+| 支持格式 | mp3 / flac / ogg / oga / wav / m4a / ape / aac |
+| 落地位置 | 自动创建列表 **「下载的歌」**（空目录也会创建，入口不会消失） |
+| 去重 | 按**文件路径**去重，重复扫描不会重复加 |
+| 手动扫描 | **我的列表页头**的 📁 按钮（图标是刷新环，位于「新建列表」「更新」右侧，常显） |
+
+> 之前踩过的坑：列表名过长会被侧栏截断（已缩短为「下载的歌」）；上游页头按钮默认 `opacity:.1`
+> 几乎透明，所以那个扫描按钮我加了常显修饰类。
+
+---
+
+## 四、只想要音源脚本（不改装 lx-music）
 
 把 `kwlx-kuwo-source.js` 导入**官方 lx-music** 即可：
 
@@ -79,10 +97,11 @@ flac24bit  → 回退成功                      ✅
 2. 选中 `酷我音源 · kwlx`
 3. ⚠️ 官方版把 `kw` 源的 actions 限定为 `['musicUrl']`，**歌词不会生效**（播放/下载不受影响）；
    歌词需要 kwlx 定制版（已放开 `['musicUrl','lyric']`）
+4. 官方版**没有**本地音乐库与手动扫描（那是定制版的改动）
 
 ---
 
-## 四、自己重新构建
+## 五、自己重新构建
 
 ```powershell
 # 0) 环境：Node ≥ 22、pnpm、git；Windows 无需 Visual Studio（已用 node:sqlite 垫片）
@@ -115,7 +134,7 @@ node build-config\build-pack.js target=win arch=x64 type=setup
 
 ---
 
-## 五、许可证与改动声明（Apache-2.0 合规）
+## 六、许可证与改动声明（Apache-2.0 合规）
 
 本项目分发的 kwlx music 是 **[lx-music-desktop](https://github.com/lyswhut/lx-music-desktop)（© lyswhut，Apache License 2.0）的修改版**，
 遵循 Apache-2.0 分发，并在此**明确列出改动**：
@@ -134,7 +153,7 @@ node build-config\build-pack.js target=win arch=x64 type=setup
 
 ---
 
-## 六、常见问题
+## 七、常见问题
 
 | 现象 | 处理 |
 | --- | --- |
