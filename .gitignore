@@ -45,3 +45,8 @@ base.apk
 .DS_Store
 Thumbs.db
 *.log
+
+# ---- 临时提交信息文件 ----
+*.gitmsg*.txt
+.gitmsg*.txt
+gitmsg*.txt
