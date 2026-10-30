@@ -18,6 +18,10 @@
 
 > Windows 10/11 64 位可直接运行；Win7 不支持（Python 3.11 限制）。
 
+> **另外还有 [kwlx music](lx-music/README.md)** —— 基于 lx-music-desktop 的定制版（酷我 + 网易云**双引擎**，都能出真无损）：
+> 到 [**v1.2.0**](https://github.com/80233456/kwmc-q-/releases/tag/v1.2.0-kwlx) 下载
+> `kwlx-music-portable.zip`（154 MB，绿色版）或 `kwlx-music-Setup.exe`（116 MB，安装版）。
+
 ---
 
 ## ✨ 功能
