@@ -310,6 +310,31 @@ async function kwGetLyric(songId, name, singer) {
   return null
 }
 
+/* ---------------- 网易云（wy）：GDAPI 解析 ---------------- */
+// 后端: https://music-api.gdstudio.xyz/api.php （星海音乐源 / GDAPI 同源接口）
+// br 映射实测: 128→MP3(4.1MB) 192→MP3(6.2MB) 320→MP3(10.4MB) 740→FLAC(50.7MB) 999→FLAC
+const GDAPI = 'https://music-api.gdstudio.xyz/api.php'
+const WY_BR = { '128k': ['128', '320'], '320k': ['320', '128'], flac: ['740', '320'], flac24bit: ['999', '740', '320'] }
+const wyCache = new Map()
+
+async function wyResolve(songId, quality) {
+  const list = WY_BR[quality] || ['320', '128']
+  const ck = songId + '|' + list.join(',')
+  if (wyCache.has(ck)) return wyCache.get(ck)
+  let out = null
+  for (const br of list) {
+    try {
+      const url = GDAPI + '?types=url&source=netease&id=' + encodeURIComponent(songId) + '&br=' + br
+      const body = await kwHttp(url, { headers: { 'User-Agent': KW_UA_WEB } })
+      const j = typeof body === 'string' ? JSON.parse(body) : body
+      if (j && typeof j.url === 'string' && /^https?:\/\//.test(j.url)) { out = j.url; break }
+    } catch (e) { /* 换下一个码率 */ }
+  }
+  if (wyCache.size > 300) wyCache.clear()
+  wyCache.set(ck, out)
+  return out
+}
+
 /* ---------------- 跨源：非 kw 歌曲用「歌名+歌手」在酷我找 rid ---------------- */
 const kwRidCache = new Map()
 
@@ -365,6 +390,14 @@ lx.send(lx.EVENT_NAMES.inited, { sources: kwSources })
 lx.on(lx.EVENT_NAMES.request, async({ source, action, info }) => {
   const musicInfo = (info && info.musicInfo) || {}
   const meta = musicInfo.meta || {}
+
+  // 网易云：优先走 GDAPI 直出（可拿真无损），失败再回退到酷我跨源
+  if (source === 'wy' && action === 'musicUrl' && meta.songId != null) {
+    const wyUrl = await wyResolve(String(meta.songId), info.type)
+    if (wyUrl) return wyUrl
+    console.log('[kwlx] wy 直连解析失败，回退酷我跨源:', musicInfo.name)
+  }
+
   let songId = ''
   if (source === 'kw' && meta.songId != null) {
     songId = String(meta.songId)

@@ -103,20 +103,47 @@ docs/                  使用说明与技术报告
 ## 🎧 kwlx music（lx-music 定制版）
 
 把本项目的酷我接口作为**自定义音源**接进 [lx-music-desktop](https://github.com/lyswhut/lx-music-desktop)，
-并预装、默认启用，**支持无损 FLAC 下载**。详见 **[lx-music/README.md](lx-music/README.md)**。
+预装、默认启用，**酷我 + 网易云双引擎，均可出无损**。详见 **[lx-music/README.md](lx-music/README.md)**。
 
 | 文件 | 说明 |
 | --- | --- |
-| [`lx-music/kwlx-kuwo-source.js`](lx-music/kwlx-kuwo-source.js) | 纯 JS 自定义音源（q 加密 + 无损 + 歌词），可直接导入官方 lx-music |
-| [`lx-music/tools/`](lx-music/tools) | 生成器、与 Python 对拍的测试、lx-music 补丁脚本、`node:sqlite` 垫片 |
+| [`lx-music/kwlx-kuwo-source.js`](lx-music/kwlx-kuwo-source.js) | 纯 JS 自定义源：酷我 q 加密直连 + 网易云 GDAPI + 跨源兜底 + 歌词，可直接导入官方 lx-music |
+| [`lx-music/tools/`](lx-music/tools) | 生成器、对拍/源级测试、`wy_harness.js`、lx-music 补丁脚本、`node:sqlite` 垫片、验证脚本 |
+| [`lx-music/KWLX-上游仓库规范.md`](lx-music/KWLX-上游仓库规范.md) | 改上游前必读：i18n 四语言 / less 模块 / 图标 viewBox / store 数据流 / 设置强制项 |
+| [`lx-music/KWLX-故障修复记录.md`](lx-music/KWLX-故障修复记录.md) | 五个真实根因（音源 id 判定、跨源注册、sqlite 垫片语义、按钮默认隐藏、旧存档覆盖） |
 
-要点：
+### 双引擎
 
-* **q 参数加密用纯 JS 重写**（BigInt 实现 64 位运算，无 Buffer/require），已与 Python 实现**逐字节对拍一致**（7 组向量）；
-* 音质档位 `128k / 320k / flac / flac24bit`（24bit 自动回退 flac），主档失败自动降级；
-* 实测：flac 26.6 MB、文件头 `fLaC` ✅；歌词 72 行 ✅；异常入参正确报错 ✅（13/13）；
-* kwlx 定制版额外做了：预装音源、默认选中、放开 `kw` 源的 `lyric` 动作、品牌名/标题/appId、
-  以及把 `better-sqlite3` 换成 **`node:sqlite` 垫片**（无需 Visual Studio 即可构建）。
+| 源 | 实现 | 实测 |
+| --- | --- | --- |
+| **酷我 kw** | 自研 **q 参数加密**（自定义 DES 变体，纯 JS/BigInt，无 Buffer/require）→ `mobi.kuwo.cn/mobi.s` → `convert_url2` | flac **26.6 MB**、`fLaC` ✅ |
+| **网易云 wy** | **GDAPI**（`music-api.gdstudio.xyz`，`br=740/999`）→ 网易 CDN 直链；失败回退酷我跨源 | flac **50.7 MB**、`fLaC` ✅ |
+| kg / tx / mg | 「歌名+歌手」跨源到酷我搜索取 rid 再解析 | kg 歌 → 酷我 flac ✅ |
+| 歌词 | 酷我 H5（http，https 被限流）→ 网易云兜底 | 65–72 行 ✅ |
+
+### 为什么"直连"值得
+
+实测市面 6 个热门音源（★6532 仓库里的候选）**全部是转发第三方聚合 API**（`oiapi`/`gdstudio`/`xcvts`…），
+没有一个是直连酷我 —— 对照表见 [`tools/compare_kw_direct.py`](lx-music/tools/compare_kw_direct.py)。
+第三方中间层会限流、收费、关站（`music.nxinxz.com`、`175.27.166.236` 已 404；`oiapi` 的 `level=flac` **只返回 MP3**）。
+所以核心播放链路我们**不依赖任何第三方**。
+
+### 开箱即用（改装项）
+
+* 预装音源 + id 用 `user_api_*` + `getUserApis()` **幂等补回**（清档/升级不丢）
+* 默认选中音源、**下载默认开启**、每行**下载按钮常显**、**默认音质 flac**
+* **本地音乐库**：自动跟随「下载目录」建列表「下载的歌」+ 「我的列表」页头**手动扫描**按钮
+* 许可协议默认已同意（协议正文仍在「关于」页），避免首启弹窗挡住界面
+* `better-sqlite3` → **`node:sqlite` 垫片**（无需 Visual Studio 即可构建）
+
+### 测试现状
+
+```
+cipher 对拍（vs Python）  7/7      test_cipher.js
+酷我源级 + 跨源          15/15     test_source.js
+网易云源级（含真 FLAC）   16/16     wy_harness.js
+node:sqlite 垫片兼容       6/6      测试台内联用例
+```
 
 > kwlx music 是 lx-music-desktop（© lyswhut，**Apache-2.0**）的修改版，遵守 Apache-2.0 分发，
 > 改动清单见 [lx-music/README.md](lx-music/README.md) 第五节。
@@ -135,6 +162,7 @@ docs/                  使用说明与技术报告
 | **[listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)** | 多音源聚合与接口适配的总体思路 |
 | **[UnblockNeteaseMusic/server](https://github.com/UnblockNeteaseMusic/server)** | 音源降级/替换（fallback）思路，歌词兜底方案参考 |
 | **[sdbabd/QQKWKG-TriMusicDecrypt](https://github.com/sdbabd/QQKWKG-TriMusicDecrypt)** | 音乐平台加解密与接口逆向的参考资料 |
+| **[guoyue2010/lxmusic-](https://github.com/guoyue2010/lxmusic-)** | ⭐ **网易云**链路：GDAPI（`music-api.gdstudio.xyz`，与「星海音乐源」同源）实测可出真 FLAC；候选音源对比也在该仓库取样（Apache-2.0） |
 | **[lyswhut/lx-music-desktop](https://github.com/lyswhut/lx-music-desktop)** | ⭐ **kwlx music** 的宿主应用（Apache-2.0）：我们以其「自定义源」机制接入酷我音源，并发布带改动的定制版（改动清单见 [lx-music/README.md](lx-music/README.md)） |
 
 使用的开源软件与库：

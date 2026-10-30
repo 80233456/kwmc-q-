@@ -1,0 +1,36 @@
+feat(kwlx): 同步现版本 —— 接入网易云双引擎 + 本地音乐库 + 手动扫描
+
+音源（lx-music/kwlx-kuwo-source.js, 17.7KB）
+- 新增网易云 wy 直连：GDAPI（music-api.gdstudio.xyz，br 740/999）→ 网易 CDN
+  实测 flac 50.7MB / 文件头 fLaC；失败自动回退「酷我跨源」（歌名+歌手找 rid）
+- wy 音质映射：128k→128 / 320k→320 / flac→740 / flac24bit→999（逐级回退）
+
+实测（全部可复现）
+- wy 源级 16/16（wy_harness.js，含真 FLAC 校验、异常 id、320k）
+- 酷我回归 15/15（flac 26.6MB、歌词 65 行、kg 跨源）
+- 候选音源审计：市面 6 个热门源全部转发第三方聚合 API，无一直连酷我
+  （tools/compare_kw_direct.py）；oiapi 的 level=flac 实测只返回 MP3，
+  music.nxinxz.com / 175.27.166.236 已 404
+- 审计 quandou.js：eval/Function/atob/cookie/require/fetch 全 0
+
+kx 定制版功能（补丁脚本）
+- 本地音乐库：启动+每5分钟扫描下载目录，自动建列表「下载的歌」，按路径去重
+  （patch_local_library.py；空目录也建列表，避免"入口消失"）
+- 手动扫描：我的列表页头按钮，i18n 四语言 + 常显修饰类
+  （patch_scan_button.py / patch_scan_btn_v2.py）
+- 设置强制项：download.enable / list.actionButtonsVisible / isAgreePact /
+  player.playQuality=flac（patch_download_btn.py + patch_lx_sqlite.py 内）
+- node:sqlite 垫片：命名参数双向容错（多余参数剔除/缺失补 NULL/undefined→NULL）
+
+文档
+- lx-music/README.md（使用说明）：补网易云实测数据与后端对比
+- lx-music/KWLX-上游仓库规范.md（新增）：i18n/less/图标 viewBox/store/设置强制项，
+  含"改上游前必读"的踩坑清单
+- lx-music/KWLX-故障修复记录.md：五个根因与验证方式
+
+工具
+- tools/wy_harness.js   高保真沙箱测试台（对齐 preload 语义：request/send/on/utils + 源过滤）
+- tools/audit_wy.py     音源安全审计
+- tools/probe_wy_backends.js  多后端对比（选型依据）
+- tools/compare_kw_direct.py  直连 vs 转发 对照
+- tools/check_runtime.js / cdp_mark.js  运行时设置读取 + 截图几何验证

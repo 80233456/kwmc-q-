@@ -134,6 +134,19 @@ async function main() {
     log(false, '错误 source 未报错')
   } catch (e) { log(true, '错误 source 正确报错: ' + e.message) }
 
+  console.log('\n=== 7) kg 源（跨源解析：按歌名+歌手找酷我 rid）===')
+  try {
+    const url = await requestHandler({
+      source: 'kg',
+      action: 'musicUrl',
+      info: { type: 'flac', musicInfo: { name: '一直很安静', singer: '阿桑', meta: { songId: 'whatever' } } },
+    })
+    log(typeof url === 'string' && /^https?:/.test(url), 'kg 歌曲跨源拿到 URL: ' + String(url).slice(0, 70))
+    const r = await head(url, 2048)
+    log(r.buf.slice(0, 4).toString('latin1') === 'fLaC' || r.buf[0] === 0xff ||
+      r.buf.slice(0, 3).toString('latin1') === 'ID3', '文件头正常: ' + JSON.stringify(r.buf.slice(0, 4).toString('latin1')))
+  } catch (e) { log(false, 'kg 跨源失败: ' + e.message) }
+
   console.log(`\nresult: ${K.ok} passed / ${K.fail} failed`)
   process.exit(K.fail === 0 ? 0 : 1)
 }

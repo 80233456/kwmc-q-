@@ -39,7 +39,25 @@ lx-music-desktop (Apache-2.0)          kwlx 补丁
 | `musicUrl`（播放/下载地址） | 自研 **q 参数加密**（自定义 DES 变体，密钥 `ylzsxkwm`）→ `mobi.kuwo.cn/mobi.s?f=kuwo&q=…` → `convert_url2` → 真实 FLAC/MP3 直链 |
 | 音质档位 | `128k` / `320k` / `flac` / `flac24bit`（**flac24bit 自动回退到 flac**）；主档失败自动降级 |
 | `lyric` 歌词 | 酷我 H5 `http://` 接口（https 会被限流）→ 失败自动走**网易云兜底** |
+| **网易云（wy）** | `wy` 歌曲优先走 **GDAPI**（`music-api.gdstudio.xyz`，br 740/999 → 真 FLAC，实测 50.7 MB `fLaC`），失败自动回退**酷我跨源**（按歌名+歌手找 rid） |
+| 其它源（kg/tx/mg） | 「歌名+歌手」跨源到酷我搜索取 rid 再解析 |
 | 纯 JS 实现 | **无 Buffer、无 require**，算法与 Python 版 `kuwo_q.py` **逐字节对拍一致**（7 组向量） |
+
+### 网易云（wy）实测数据
+
+```
+富士山下(65766)    flac → fLaC  FLAC 无损 ✅   (50.7 MB)
+起风了(1330348068) flac → fLaC  FLAC 无损 ✅
+两者 320k          → MP3 ✅
+GDAPI br 映射: 128→MP3(4.1MB) 192→MP3(6.2MB) 320→MP3(10.4MB) 740/999→FLAC(50.7MB)
+异常 id → {"url":"","br":0}（干净失败，自动回退酷我跨源）
+源级测试: 16 passed / 0 failed ；酷我回归: 15 passed / 0 failed
+```
+
+> GDAPI 接口与「星海音乐源」同源，来自仓库
+> [guoyue2010/lxmusic-](https://github.com/guoyue2010/lxmusic-)（Apache-2.0）。
+> 候选音源实测记录：`oiapi.net` 的 level 参数无效（永远给 MP3）✗、`music.nxinxz.com` 与 `175.27.166.236` 已 404 ✗、
+> `fish.js` 需要 key ✗ —— 所以只把**唯一给出真 FLAC** 的 GDAPI 纳入。
 
 ### 实测数据
 

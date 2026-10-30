@@ -8,7 +8,7 @@ import sys
 
 SRC = r"D:\project\kwlx\lx-src"
 SRC_JS = r"D:\project\kwlx\kwlx-kuwo-source.js"
-MARK = "kwlx_kuwo"
+MARK = "user_api_kwlx"
 
 
 def read(p):
